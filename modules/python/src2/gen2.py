@@ -314,10 +314,7 @@ class ClassInfo(object):
         sorted_props = [(p.name, p) for p in self.props]
         sorted_props.sort()
 
-        access_op = "->"
-        if self.issimple:
-            access_op = "."
-
+        access_op = "." if self.issimple else "->"
         for pname, p in sorted_props:
             if self.isalgorithm:
                 getset_code.write(gen_template_get_prop_algo.substitute(name=self.name, cname=self.cname, member=pname, membertype=p.tp, access=access_op))
@@ -345,11 +342,15 @@ class ClassInfo(object):
             methods_code.write(m.gen_code(codegen))
             methods_inits.write(m.get_tab_entry())
 
-        code = gen_template_type_impl.substitute(name=self.name, wname=self.wname, cname=self.cname,
-            getset_code=getset_code.getvalue(), getset_inits=getset_inits.getvalue(),
-            methods_code=methods_code.getvalue(), methods_inits=methods_inits.getvalue())
-
-        return code
+        return gen_template_type_impl.substitute(
+            name=self.name,
+            wname=self.wname,
+            cname=self.cname,
+            getset_code=getset_code.getvalue(),
+            getset_inits=getset_inits.getvalue(),
+            methods_code=methods_code.getvalue(),
+            methods_inits=methods_inits.getvalue(),
+        )
 
     def gen_def(self, codegen):
         all_classes = codegen.classes
@@ -436,8 +437,7 @@ class FuncVariant(object):
             ainfo = ArgInfo(a)
             if ainfo.isarray and not ainfo.arraycvt:
                 c = ainfo.arraylen
-                c_arrlist = self.array_counters.get(c, [])
-                if c_arrlist:
+                if c_arrlist := self.array_counters.get(c, []):
                     c_arrlist.append(ainfo.name)
                 else:
                     self.array_counters[c] = [ainfo.name]
@@ -471,7 +471,12 @@ class FuncVariant(object):
             argno += 1
             if a.name in self.array_counters:
                 continue
-            assert not a.tp in forbidden_arg_types, 'Forbidden type "{}" for argument "{}" in "{}" ("{}")'.format(a.tp, a.name, self.name, self.classname)
+            assert (
+                a.tp not in forbidden_arg_types
+            ), 'Forbidden type "{}" for argument "{}" in "{}" ("{}")'.format(
+                a.tp, a.name, self.name, self.classname
+            )
+
             if a.tp in ignored_arg_types:
                 continue
             if a.returnarg:
@@ -481,17 +486,14 @@ class FuncVariant(object):
                 continue
             if not a.inputarg:
                 continue
-            if not a.defval:
-                arglist.append((a.name, argno))
-            else:
+            if a.defval:
                 firstoptarg = min(firstoptarg, len(arglist))
                 # if there are some array output parameters before the first default parameter, they
                 # are added as optional parameters before the first optional parameter
                 if outarr_list:
                     arglist += outarr_list
                     outarr_list = []
-                arglist.append((a.name, argno))
-
+            arglist.append((a.name, argno))
         if outarr_list:
             firstoptarg = min(firstoptarg, len(arglist))
             arglist += outarr_list
@@ -505,7 +507,7 @@ class FuncVariant(object):
         if self.rettype:
             outlist = [("retval", -1)] + outlist
         elif self.isconstructor:
-            assert outlist == []
+            assert not outlist
             outlist = [("self", -1)]
         if self.isconstructor:
             classname = self.classname
@@ -563,10 +565,7 @@ class FuncInfo(object):
             return "static int {fn_name}(pyopencv_{type_name}_t* self, PyObject* py_args, PyObject* kw)".format(
                     fn_name=full_fname, type_name=codegen.classes[self.classname].name)
 
-        if self.classname:
-            self_arg = "self"
-        else:
-            self_arg = ""
+        self_arg = "self" if self.classname else ""
         return "static PyObject* %s(PyObject* %s, PyObject* py_args, PyObject* kw)" % (full_fname, self_arg)
 
     def get_tab_entry(self):
@@ -595,16 +594,13 @@ class FuncInfo(object):
 
         # The final docstring will be: Each prototype, followed by
         # their relevant doxygen comment
-        full_docstring = ""
-        for prototype, body in zip(prototype_list, docstring_list):
-            full_docstring += Template("$prototype\n$docstring\n\n\n\n").substitute(
+        full_docstring = "".join(Template("$prototype\n$docstring\n\n\n\n").substitute(
                 prototype=prototype,
                 docstring='\n'.join(
                     ['.   ' + line
                      for line in body.split('\n')]
                 )
-            )
-
+            ) for prototype, body in zip(prototype_list, docstring_list))
         # Escape backslashes, newlines, and double quotes
         full_docstring = full_docstring.strip().replace("\\", "\\\\").replace('\n', '\\n').replace("\"", "\\\"")
         # Convert unicode chars to xml representation, but keep as string instead of bytes

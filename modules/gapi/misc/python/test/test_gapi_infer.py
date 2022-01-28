@@ -108,7 +108,9 @@ try:
 
         def test_age_gender_infer_roi_list(self):
             # NB: Check IE
-            if not cv.dnn.DNN_TARGET_CPU in cv.dnn.getAvailableTargets(cv.dnn.DNN_BACKEND_INFERENCE_ENGINE):
+            if cv.dnn.DNN_TARGET_CPU not in cv.dnn.getAvailableTargets(
+                cv.dnn.DNN_BACKEND_INFERENCE_ENGINE
+            ):
                 return
 
             root_path    = '/omz_intel_models/intel/age-gender-recognition-retail-0013/FP32/age-gender-recognition-retail-0013'
@@ -157,7 +159,9 @@ try:
 
         def test_age_gender_infer2_roi(self):
             # NB: Check IE
-            if not cv.dnn.DNN_TARGET_CPU in cv.dnn.getAvailableTargets(cv.dnn.DNN_BACKEND_INFERENCE_ENGINE):
+            if cv.dnn.DNN_TARGET_CPU not in cv.dnn.getAvailableTargets(
+                cv.dnn.DNN_BACKEND_INFERENCE_ENGINE
+            ):
                 return
 
             root_path    = '/omz_intel_models/intel/age-gender-recognition-retail-0013/FP32/age-gender-recognition-retail-0013'

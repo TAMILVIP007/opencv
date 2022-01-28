@@ -111,9 +111,7 @@ def mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
+        if exc.errno != errno.EEXIST or not os.path.isdir(path):
             raise
 
 def header_import(hdr):
@@ -142,11 +140,7 @@ class GeneralInfo():
         self.params={}
 
         self.deprecated = False
-        if type == "class":
-            docstring = "// C++: class " + self.name + "\n"
-        else:
-            docstring=""
-
+        docstring = "// C++: class " + self.name + "\n" if type == "class" else ""
         if len(decl)>5 and decl[5]:
             doc = decl[5]
 
@@ -206,10 +200,7 @@ class ConstInfo(GeneralInfo):
                                                                  manual="(manual)" if self.addedManually else "")
 
     def isIgnored(self):
-        for c in const_ignore_list:
-            if re.match(c, self.name):
-                return True
-        return False
+        return any(re.match(c, self.name) for c in const_ignore_list)
 
 def normalize_field_name(name):
     return name.replace(".","_").replace("[","").replace("]","").replace("_getNativeObjAddr()","_nativeObj")
@@ -296,7 +287,7 @@ class ClassInfo(GeneralInfo):
 
     def getForwardDeclarations(self, module):
         enum_decl = [x for x in self.imports if self.isEnum(x) and type_dict[x]["import_module"] != module]
-        enum_imports = sorted(list(set([type_dict[m]["import_module"] for m in enum_decl])))
+        enum_imports = sorted(list({type_dict[m]["import_module"] for m in enum_decl}))
         class_decl = [x for x in self.imports if not self.isEnum(x)]
         return ["#import \"%s.h\"" % c for c in enum_imports] + [""] + ["@class %s;" % c for c in sorted(class_decl)]
 
@@ -608,10 +599,7 @@ def extension_tmp_arg(a):
     return a.name
 
 def make_swift_extension(args):
-    for a in args:
-        if extension_arg(a):
-            return True
-    return False
+    return any(extension_arg(a) for a in args)
 
 def build_swift_signature(args):
     swift_signature = ""
@@ -664,7 +652,7 @@ def build_swift_logues(args):
                     epilogue.append(a.name + ".removeAll()")
                     epilogue.append(a.name + ".append(contentsOf: " +  extension_tmp_arg(a) + "." + array_prop + ")")
             elif type_dict[a.ctype].get("primitive_vector_vector", False):
-                if not "O" in a.out:
+                if "O" not in a.out:
                     prologue.append("let " + extension_tmp_arg(a) + " = " + a.name + ".map {" + type_dict[a.ctype]["objc_type"][:-1] + "($0) }")
                 else:
                     prologue.append("let " + extension_tmp_arg(a) + " = NSMutableArray(array: " + a.name + ".map {" + type_dict[a.ctype]["objc_type"][:-1] + "($0) })")
@@ -686,14 +674,13 @@ def see_lookup(objc_class, see):
     semi_colon = see.find("::")
     see_class = see[:semi_colon] if semi_colon > 0 else objc_class
     see_method = see[(semi_colon + 2):] if semi_colon != -1 else see
-    if (see_class, see_method) in method_dict:
-        method = method_dict[(see_class, see_method)]
-        if see_class == objc_class:
-            return method
-        else:
-            return ("-" if method[0] == "-" else "") + "[" + see_class + " " + method[1:] + "]"
-    else:
+    if (see_class, see_method) not in method_dict:
         return see
+    method = method_dict[(see_class, see_method)]
+    if see_class == objc_class:
+        return method
+    else:
+        return ("-" if method[0] == "-" else "") + "[" + see_class + " " + method[1:] + "]"
 
 
 class ObjectiveCWrapperGenerator(object):
@@ -725,10 +712,12 @@ class ObjectiveCWrapperGenerator(object):
         if self.isWrapped(name) and not classinfo.base:
             logging.warning('duplicated: %s', classinfo)
             return None
-        if name in self.classes:  # TODO implement inner namespaces
-            if self.classes[name].symbol_id != classinfo.symbol_id:
-                logging.warning('duplicated under new id: {} (was {})'.format(classinfo.symbol_id, self.classes[name].symbol_id))
-                return None
+        if (
+            name in self.classes
+            and self.classes[name].symbol_id != classinfo.symbol_id
+        ):
+            logging.warning('duplicated under new id: {} (was {})'.format(classinfo.symbol_id, self.classes[name].symbol_id))
+            return None
         self.classes[name] = classinfo
         if name in type_dict and not classinfo.base:
             logging.warning('duplicated: %s', classinfo)
@@ -741,10 +730,9 @@ class ObjectiveCWrapperGenerator(object):
             )
 
         # missing_consts { Module : { public : [[name, val],...], private : [[]...] } }
-        if name in missing_consts:
-            if 'public' in missing_consts[name]:
-                for (n, val) in missing_consts[name]['public']:
-                    classinfo.consts.append( ConstInfo([n, val], addedManually=True) )
+        if name in missing_consts and 'public' in missing_consts[name]:
+            for (n, val) in missing_consts[name]['public']:
+                classinfo.consts.append( ConstInfo([n, val], addedManually=True) )
 
         # class props
         for p in decl[3]:
@@ -779,8 +767,7 @@ class ObjectiveCWrapperGenerator(object):
                 constinfo.classname = ''
 
             ci = self.getClass(constinfo.classname)
-            duplicate = ci.getConst(constinfo.name)
-            if duplicate:
+            if duplicate := ci.getConst(constinfo.name):
                 if duplicate.addedManually:
                     logging.info('manual: %s', constinfo)
                 else:
@@ -833,7 +820,10 @@ class ObjectiveCWrapperGenerator(object):
             logging.warning('not found: %s', fi)
         else:
             ci = self.getClass(classname)
-            if ci.symbol_id != fi.symbol_id[0:fi.symbol_id.rfind('.')] and ci.symbol_id != self.Module:
+            if ci.symbol_id not in [
+                fi.symbol_id[: fi.symbol_id.rfind('.')],
+                self.Module,
+            ]:
                 # TODO fix this (inner namepaces)
                 logging.warning('SKIP: mismatched class: {} (class: {})'.format(fi.symbol_id, ci.symbol_id))
                 return
@@ -894,8 +884,7 @@ class ObjectiveCWrapperGenerator(object):
                 name = decl[0]
                 try:
                     if name.startswith("struct") or name.startswith("class"):
-                        ci = self.add_class(decl)
-                        if ci:
+                        if ci := self.add_class(decl):
                             ci.header_import = header_import(hdr)
                     elif name.startswith("const"):
                         self.add_const(decl)
@@ -944,17 +933,22 @@ class ObjectiveCWrapperGenerator(object):
         return report.getvalue()
 
     def fullTypeName(self, t):
-        if not type_dict[t].get("is_primitive", False) or "cast_to" in type_dict[t]:
-            if "cast_to" in type_dict[t]:
-                return type_dict[t]["cast_to"]
-            else:
-                namespace_prefix = self.get_namespace_prefix(t)
-                return namespace_prefix + t
-        else:
+        if (
+            type_dict[t].get("is_primitive", False)
+            and "cast_to" not in type_dict[t]
+        ):
             return t
+        if "cast_to" in type_dict[t]:
+            return type_dict[t]["cast_to"]
+        namespace_prefix = self.get_namespace_prefix(t)
+        return namespace_prefix + t
 
     def build_objc2cv_prologue(self, prologue, vector_type, vector_full_type, objc_type, vector_name, array_name):
-        if not (vector_type in type_dict and "to_cpp" in type_dict[vector_type] and type_dict[vector_type]["to_cpp"] != "%(n)s.nativeRef"):
+        if (
+            vector_type not in type_dict
+            or "to_cpp" not in type_dict[vector_type]
+            or type_dict[vector_type]["to_cpp"] == "%(n)s.nativeRef"
+        ):
             prologue.append("OBJC2CV(" + vector_full_type + ", " + objc_type[:-1] + ", " + vector_name + ", " + array_name + ");")
         else:
             conv_macro = "CONV_" + array_name
@@ -963,7 +957,12 @@ class ObjectiveCWrapperGenerator(object):
             prologue.append("#undef " + conv_macro)
 
     def build_cv2objc_epilogue(self, epilogue, vector_type, vector_full_type, objc_type, vector_name, array_name):
-        if not (vector_type in type_dict and "from_cpp" in type_dict[vector_type] and type_dict[vector_type]["from_cpp"] != ("[" + objc_type[:-1] + " fromNative:%(n)s]")):
+        if (
+            vector_type not in type_dict
+            or "from_cpp" not in type_dict[vector_type]
+            or type_dict[vector_type]["from_cpp"]
+            == "[" + objc_type[:-1] + " fromNative:%(n)s]"
+        ):
             epilogue.append("CV2OBJC(" + vector_full_type + ", " + objc_type[:-1] + ", " + vector_name + ", " + array_name + ");")
         else:
             unconv_macro = "UNCONV_" + array_name

@@ -9,15 +9,14 @@ ORB features and FLANN matcher are used. The actual tracking is implemented by
 PlaneTracker class in plane_tracker.py
 '''
 
+
 # Python 2/3 compatibility
 from __future__ import print_function
 
 import numpy as np
 import cv2 as cv
 import sys
-PY3 = sys.version_info[0] == 3
-
-if PY3:
+if PY3 := sys.version_info[0] == 3:
     xrange = range
 
 # local modules

@@ -25,10 +25,7 @@ def get_limits(dtype):
     if not is_numeric(dtype):
         return None, None
 
-    if np.issubdtype(dtype, np.integer):
-        info = np.iinfo(dtype)
-    else:
-        info = np.finfo(dtype)
+    info = np.iinfo(dtype) if np.issubdtype(dtype, np.integer) else np.finfo(dtype)
     return info.min, info.max
 
 
@@ -385,7 +382,7 @@ class Arguments(NewOpenCVTests):
     def test_parse_to_string_convertible(self):
         try_to_convert = partial(self._try_to_convert, cv.utils.dumpString)
         for convertible in (None, '', 's', 'str', str(123), np.str('test1'), np.str_('test2')):
-            expected = 'string: ' + (convertible if convertible else '')
+            expected = 'string: ' + (convertible or '')
             actual = try_to_convert(convertible)
             self.assertEqual(expected, actual,
                              msg=get_conversion_error_msg(convertible, expected, actual))
@@ -453,8 +450,8 @@ class Arguments(NewOpenCVTests):
 
     def test_parse_to_range_convertible_to_all(self):
         try_to_convert = partial(self._try_to_convert, cv.utils.dumpRange)
+        expected = 'range: all'
         for convertible in ((), [], np.array([])):
-            expected = 'range: all'
             actual = try_to_convert(convertible)
             self.assertEqual(expected, actual,
                              msg=get_conversion_error_msg(convertible, expected, actual))

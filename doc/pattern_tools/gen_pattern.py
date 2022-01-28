@@ -42,8 +42,8 @@ class PatternMaker:
         pattern_height = ((self.rows - 1.0) * spacing) + (2.0 * r)
         x_spacing = (self.width - pattern_width) / 2.0
         y_spacing = (self.height - pattern_height) / 2.0
-        for x in range(0, self.cols):
-            for y in range(0, self.rows):
+        for x in range(self.cols):
+            for y in range(self.rows):
                 dot = SVG("circle", cx=(x * spacing) + x_spacing + r,
                           cy=(y * spacing) + y_spacing + r, r=r, fill="black", stroke="none")
                 self.g.append(dot)
@@ -55,8 +55,8 @@ class PatternMaker:
         pattern_height = ((self.rows-1.0) * spacing) + (2.0 * r)
         x_spacing = (self.width - pattern_width) / 2.0
         y_spacing = (self.height - pattern_height) / 2.0
-        for x in range(0, self.cols):
-            for y in range(0, self.rows):
+        for x in range(self.cols):
+            for y in range(self.rows):
                 dot = SVG("circle", cx=(2 * x * spacing) + (y % 2)*spacing + x_spacing + r,
                           cy=(y * spacing) + y_spacing + r, r=r, fill="black", stroke="none")
                 self.g.append(dot)
@@ -65,8 +65,8 @@ class PatternMaker:
         spacing = self.square_size
         xspacing = (self.width - self.cols * self.square_size) / 2.0
         yspacing = (self.height - self.rows * self.square_size) / 2.0
-        for x in range(0, self.cols):
-            for y in range(0, self.rows):
+        for x in range(self.cols):
+            for y in range(self.rows):
                 if x % 2 == y % 2:
                     square = SVG("rect", x=x * spacing + xspacing, y=y * spacing + yspacing, width=spacing,
                                  height=spacing, fill="black", stroke="none")
@@ -115,8 +115,8 @@ class PatternMaker:
         spacing = self.square_size
         xspacing = (self.width - self.cols * self.square_size) / 2.0
         yspacing = (self.height - self.rows * self.square_size) / 2.0
-        for x in range(0, self.cols):
-            for y in range(0, self.rows):
+        for x in range(self.cols):
+            for y in range(self.rows):
                 if x % 2 == y % 2:
                     corner_types, is_inside = self._get_type(x, y)
                     if is_inside:
@@ -133,9 +133,7 @@ class PatternMaker:
             x_spacing = (self.width - pattern_width) / 2.0
             y_spacing = (self.height - pattern_height) / 2.0
             for x, y in self.markers:
-                color = "black"
-                if x % 2 == y % 2:
-                    color = "white"
+                color = "white" if x % 2 == y % 2 else "black"
                 dot = SVG("circle", cx=(x * spacing) + x_spacing + r,
                           cy=(y * spacing) + y_spacing + r, r=r, fill=color, stroke="none")
                 self.g.append(dot)
@@ -174,8 +172,7 @@ def main():
                         default=argparse.SUPPRESS, action="store", dest="markers", nargs="+", type=int)
     args = parser.parse_args()
 
-    show_help = args.show_help
-    if show_help:
+    if show_help := args.show_help:
         parser.print_help()
         return
     output = args.output
@@ -185,7 +182,7 @@ def main():
     units = args.units
     square_size = args.square_size
     radius_rate = args.radius_rate
-    if 'page_width' and 'page_height' in args:
+    if 'page_height' in args:
         page_width = args.page_width
         page_height = args.page_height
     else:
@@ -201,7 +198,7 @@ def main():
             raise ValueError("The length of the markers array={} must be even".format(len(args.markers)))
         markers = set()
         for x, y in zip(args.markers[::2], args.markers[1::2]):
-            if x in range(0, columns) and y in range(0, rows):
+            if x in range(columns) and y in range(rows):
                 markers.add((x, y))
             else:
                 raise ValueError("The marker {},{} is outside the checkerboard".format(x, y))

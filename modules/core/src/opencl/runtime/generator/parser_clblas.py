@@ -7,10 +7,7 @@ import sys, re;
 from common import remove_comments, getTokens, getParameters, postProcessParameters
 
 try:
-    if len(sys.argv) > 1:
-        f = open(sys.argv[1], "r")
-    else:
-        f = sys.stdin
+    f = open(sys.argv[1], "r") if len(sys.argv) > 1 else sys.stdin
 except:
     sys.exit("ERROR. Can't open input file")
 
@@ -24,7 +21,6 @@ while True:
     line = line.strip()
     parts = line.split();
     if (line.startswith('clblas') or line.startswith('cl_') or line == 'void') and len(line.split()) == 1 and line.find('(') == -1:
-        fn = {}
         modifiers = []
         ret = []
         calling = []
@@ -44,10 +40,7 @@ while True:
         while (i < len(parts)):
             calling.append(parts[i])
             i += 1
-        fn['modifiers'] = []  # modifiers
-        fn['ret'] = ret
-        fn['calling'] = calling
-
+        fn = {'modifiers': [], 'ret': ret, 'calling': calling}
         # print 'modifiers='+' '.join(modifiers)
         # print 'ret='+' '.join(type)
         # print 'calling='+' '.join(calling)
@@ -68,7 +61,8 @@ while True:
 
         i = 0;
 
-        name = parts[i]; i += 1;
+        name = parts[i]
+        i += 1;
         fn['name'] = name
         print('name=' + name)
 
@@ -97,8 +91,7 @@ functionsFilter = generateFilterNames(fns)
 filter_file = open(filterFileName, 'w')
 filter_file.write(functionsFilter)
 
-ctx = {}
-ctx['CLAMDBLAS_REMAP_ORIGIN'] = generateRemapOrigin(fns)
+ctx = {'CLAMDBLAS_REMAP_ORIGIN': generateRemapOrigin(fns)}
 ctx['CLAMDBLAS_REMAP_DYNAMIC'] = generateRemapDynamic(fns)
 ctx['CLAMDBLAS_FN_DECLARATIONS'] = generateFnDeclaration(fns)
 

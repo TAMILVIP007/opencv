@@ -66,9 +66,7 @@ class Subsetter:
         matches_matrix = FeatureMatcher.get_matches_matrix(pairwise_matches)
         matches_matrix_subset = Subsetter.subset_matrix(matches_matrix,
                                                         indices_to_delete)
-        matches_subset = Subsetter.matrix_rows_to_list(matches_matrix_subset)
-
-        return matches_subset
+        return Subsetter.matrix_rows_to_list(matches_matrix_subset)
 
     @staticmethod
     def get_indices_to_delete(nr_elements, indices_to_keep):

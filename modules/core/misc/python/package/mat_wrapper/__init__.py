@@ -14,8 +14,7 @@ class Mat(np.ndarray):
     '''
 
     def __new__(cls, arr, **kwargs):
-        obj = arr.view(Mat)
-        return obj
+        return arr.view(Mat)
 
     def __init__(self, arr, **kwargs):
         self.wrap_channels = kwargs.pop('wrap_channels', getattr(arr, 'wrap_channels', False))

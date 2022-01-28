@@ -4,6 +4,7 @@
 K-means clusterization test
 '''
 
+
 # Python 2/3 compatibility
 from __future__ import print_function
 
@@ -11,8 +12,7 @@ import numpy as np
 import cv2 as cv
 from numpy import random
 import sys
-PY3 = sys.version_info[0] == 3
-if PY3:
+if PY3 := sys.version_info[0] == 3:
     xrange = range
 
 from tests_common import NewOpenCVTests

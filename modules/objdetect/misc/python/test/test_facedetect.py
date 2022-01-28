@@ -74,14 +74,20 @@ class facedetect_test(NewOpenCVTests):
         eps = 0.8
 
         for i in range(len(faces)):
-            for j in range(len(testFaces)):
-                if intersectionRate(faces[i][0], testFaces[j][0]) > eps:
+            for testFace in testFaces:
+                if intersectionRate(faces[i][0], testFace[0]) > eps:
                     faces_matches += 1
                     #check eyes
                     if len(eyes[i]) == 2:
-                        if intersectionRate(eyes[i][0], testFaces[j][1]) > eps and intersectionRate(eyes[i][1] , testFaces[j][2]) > eps:
+                        if (
+                            intersectionRate(eyes[i][0], testFace[1]) > eps
+                            and intersectionRate(eyes[i][1], testFace[2]) > eps
+                        ):
                             eyes_matches += 1
-                        elif intersectionRate(eyes[i][1], testFaces[j][1]) > eps and intersectionRate(eyes[i][0], testFaces[j][2]) > eps:
+                        elif (
+                            intersectionRate(eyes[i][1], testFace[1]) > eps
+                            and intersectionRate(eyes[i][0], testFace[2]) > eps
+                        ):
                             eyes_matches += 1
 
         self.assertEqual(faces_matches, 2)

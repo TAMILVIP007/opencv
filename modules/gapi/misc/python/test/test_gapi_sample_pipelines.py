@@ -538,7 +538,6 @@ try:
                 @staticmethod
                 def run(img0, img1):
                     raise Exception('Error')
-                    return img0 + img1
 
             g_in0 = cv.GMat()
             g_in1 = cv.GMat()

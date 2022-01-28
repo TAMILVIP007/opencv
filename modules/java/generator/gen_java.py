@@ -111,9 +111,7 @@ def mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc:
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
+        if exc.errno != errno.EEXIST or not os.path.isdir(path):
             raise
 
 T_JAVA_START_INHERITED = read_contents(os.path.join(SCRIPT_DIR, 'templates/java_class_inherited.prolog'))
@@ -129,11 +127,7 @@ class GeneralInfo():
         # parse doxygen comments
         self.params={}
         self.annotation=[]
-        if type == "class":
-            docstring="// C++: class " + self.name + "\n"
-        else:
-            docstring=""
-
+        docstring = "// C++: class " + self.name + "\n" if type == "class" else ""
         if len(decl)>5 and decl[5]:
             doc = decl[5]
 
@@ -172,24 +166,21 @@ class GeneralInfo():
             return name, parent, spaceName, "", "" # error?!
 
     def fullNameOrigin(self):
-        result = self.symbol_id
-        return result
+        return self.symbol_id
 
     def fullNameJAVA(self):
-        result = '.'.join([self.fullParentNameJAVA(), self.jname])
-        return result
+        return '.'.join([self.fullParentNameJAVA(), self.jname])
 
     def fullNameCPP(self):
-        result = self.cname
-        return result
+        return self.cname
 
     def fullParentNameJAVA(self):
-        result = ".".join([f for f in [self.namespace] + self.classpath.split(".") if len(f)>0])
-        return result
+        return ".".join(
+            [f for f in [self.namespace] + self.classpath.split(".") if len(f) > 0]
+        )
 
     def fullParentNameCPP(self):
-        result = get_cname(self.parent_id)
-        return result
+        return get_cname(self.parent_id)
 
 class ConstInfo(GeneralInfo):
     def __init__(self, decl, addedManually=False, namespaces=[], enumType=None):
@@ -198,8 +189,7 @@ class ConstInfo(GeneralInfo):
         self.enumType = enumType
         self.addedManually = addedManually
         if self.namespace in namespaces_dict:
-            prefix = namespaces_dict[self.namespace]
-            if prefix:
+            if prefix := namespaces_dict[self.namespace]:
                 self.name = '%s_%s' % (prefix, self.name)
 
     def __repr__(self):
@@ -208,10 +198,7 @@ class ConstInfo(GeneralInfo):
                                                                  manual="(manual)" if self.addedManually else "")
 
     def isIgnored(self):
-        for c in const_ignore_list:
-            if re.match(c, self.name):
-                return True
-        return False
+        return any(re.match(c, self.name) for c in const_ignore_list)
 
 def normalize_field_name(name):
     return name.replace(".","_").replace("[","").replace("]","").replace("_getNativeObjAddr()","_nativeObj")
@@ -267,8 +254,7 @@ class ClassInfo(GeneralInfo):
             self.jname = '%s_%s' % (prefix, self.jname)
 
         if self.namespace in namespaces_dict:
-            prefix = namespaces_dict[self.namespace]
-            if prefix:
+            if prefix := namespaces_dict[self.namespace]:
                 self.name = '%s_%s' % (prefix, self.name)
                 self.jname = '%s_%s' % (prefix, self.jname)
 
@@ -280,7 +266,7 @@ class ClassInfo(GeneralInfo):
             base_class = base_class.replace('::', '.')
             base_info = ClassInfo(('class {}'.format(base_class), '', [], [], None, None), [self.namespace])
             base_type_name = base_info.name
-            if not base_type_name in type_dict:
+            if base_type_name not in type_dict:
                 base_type_name = re.sub(r"^.*:", "", decl[1].split(",")[0]).strip().replace(self.jname, "")
             self.base = base_type_name
             self.addImports(self.base)
@@ -333,11 +319,10 @@ class ClassInfo(GeneralInfo):
         self.cpp_code = StringIO()
         if self.base:
             self.j_code.write(T_JAVA_START_INHERITED)
+        elif self.name != Module:
+            self.j_code.write(T_JAVA_START_ORPHAN)
         else:
-            if self.name != Module:
-                self.j_code.write(T_JAVA_START_ORPHAN)
-            else:
-                self.j_code.write(T_JAVA_START_MODULE)
+            self.j_code.write(T_JAVA_START_MODULE)
         # misc handling
         if self.name == Module:
           for i in module_imports or []:
@@ -407,8 +392,7 @@ class FuncInfo(GeneralInfo):
                 self.jname = prefix #'%s_%s' % (prefix, self.jname)
 
         if self.namespace in namespaces_dict:
-            prefix = namespaces_dict[self.namespace]
-            if prefix:
+            if prefix := namespaces_dict[self.namespace]:
                 if self.classname:
                     self.classname = '%s_%s' % (prefix, self.classname)
                     if self.isconstructor:
@@ -502,11 +486,7 @@ class JavaWrapperGenerator(object):
 
         # class props
         for p in decl[3]:
-            if True: #"vector" not in p[0]:
-                classinfo.props.append( ClassPropInfo(p) )
-            else:
-                logging.warning("Skipped property: [%s]" % name, p)
-
+            classinfo.props.append( ClassPropInfo(p) )
         if classinfo.base:
             classinfo.addImports(classinfo.base)
         type_dict.setdefault("Ptr_"+name, {}).update(
@@ -530,8 +510,7 @@ class JavaWrapperGenerator(object):
                 constinfo.classname = ''
 
             ci = self.getClass(constinfo.classname)
-            duplicate = ci.getConst(constinfo.name)
-            if duplicate:
+            if duplicate := ci.getConst(constinfo.name):
                 if duplicate.addedManually:
                     logging.info('manual: %s', constinfo)
                 else:
@@ -650,10 +629,7 @@ class JavaWrapperGenerator(object):
         return report.getvalue()
 
     def fullTypeNameCPP(self, t):
-        if self.isWrapped(t):
-            return self.getClass(t).fullNameCPP()
-        else:
-            return cast_from(t)
+        return self.getClass(t).fullNameCPP() if self.isWrapped(t) else cast_from(t)
 
     def gen_func(self, ci, fi, prop_name=''):
         logging.info("%s", fi)

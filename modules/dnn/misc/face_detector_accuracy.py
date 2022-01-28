@@ -25,10 +25,11 @@ parser.add_argument('--fddb', help='Evaluate FDDB dataset, http://vis-www.cs.uma
 parser.add_argument('--wider', help='Evaluate WIDER FACE dataset, http://mmlab.ie.cuhk.edu.hk/projects/WIDERFace/', action='store_true')
 args = parser.parse_args()
 
-dataset = {}
-dataset['images'] = []
-dataset['categories'] = [{ 'id': 0, 'name': 'face' }]
-dataset['annotations'] = []
+dataset = {
+    'images': [],
+    'categories': [{'id': 0, 'name': 'face'}],
+    'annotations': [],
+}
 
 def ellipse2Rect(params):
     rad_x = params[0]
@@ -91,7 +92,7 @@ def fddb_dataset(annotations, images):
                     # Faces
                     numFaces = int(lines[lineId])
                     lineId += 1
-                    for i in range(numFaces):
+                    for _ in range(numFaces):
                         params = [float(v) for v in lines[lineId].split()]
                         lineId += 1
                         left, top, right, bottom = ellipse2Rect(params)
@@ -112,7 +113,7 @@ def wider_dataset(annotations, images):
             # Faces
             numFaces = int(lines[lineId])
             lineId += 1
-            for i in range(numFaces):
+            for _ in range(numFaces):
                 params = [int(v) for v in lines[lineId].split()]
                 lineId += 1
                 left, top, width, height = params[0], params[1], params[2], params[3]

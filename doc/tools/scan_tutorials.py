@@ -25,22 +25,18 @@ class Tutorial(object):
         rx_next = re.compile(r"@next_tutorial\{(\w+)\}")
         for line in f:
             if self.title is None:
-                m = rx_title.search(line)
-                if m:
+                if m := rx_title.search(line):
                     self.title = m.group(1)
                     continue
             if self.prev is None:
-                m = rx_prev.search(line)
-                if m:
+                if m := rx_prev.search(line):
                     self.prev = m.group(1)
                     continue
             if self.next is None:
-                m = rx_next.search(line)
-                if m:
+                if m := rx_next.search(line):
                     self.next = m.group(1)
                     continue
-            m = rx_subpage.search(line)
-            if m:
+            if m := rx_subpage.search(line):
                 self.children.append(m.group(1))
                 continue
 
@@ -78,7 +74,7 @@ if __name__ == "__main__":
     p = Path('tutorials')
     print("Looking for tutorials in: '{}'".format(p))
 
-    all_tutorials = dict()
+    all_tutorials = {}
     for f in p.glob('**/*'):
         if f.suffix.lower() in ('.markdown', '.md'):
             t = Tutorial(f)

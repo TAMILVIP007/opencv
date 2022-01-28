@@ -63,7 +63,7 @@ class CppHeaderParser(object):
                 sys.exit(-1)
             if t == '(':
                 balance += 1
-            if t == ')':
+            elif t == ')':
                 balance -= 1
                 if balance == 0:
                     break
@@ -164,13 +164,13 @@ class CppHeaderParser(object):
             elif w == "<":
                 arg_type += "_"
                 angle_stack.append(0)
-            elif w == "," or w == '>':
+            elif w in [",", '>']:
                 if not angle_stack:
                     print("Error at %s:%d: argument contains ',' or '>' not within template arguments" % (self.hname, self.lineno))
                     sys.exit(-1)
                 if w == ",":
                     arg_type += "_and_"
-                elif w == ">":
+                else:
                     if angle_stack[0] == 0:
                         print("Error at %s:%d: template has no arguments" % (self.hname, self.lineno))
                         sys.exit(-1)
@@ -191,7 +191,7 @@ class CppHeaderParser(object):
 
         counter_str = ""
         add_star = False
-        if ("[" in arg_name) and not ("operator" in arg_str):
+        if "[" in arg_name and "operator" not in arg_str:
             #print arg_str
             p1 = arg_name.find("[")
             p2 = arg_name.find("]",p1+1)
@@ -235,9 +235,7 @@ class CppHeaderParser(object):
             pv = pair.split("=")
             if len(pv) == 1:
                 prev_val_delta += 1
-                val = ""
-                if prev_val:
-                    val = prev_val + "+"
+                val = prev_val + "+" if prev_val else ""
                 val += str(prev_val_delta)
             else:
                 prev_val_delta = 0
@@ -294,8 +292,7 @@ class CppHeaderParser(object):
             fdecl = fdecl.replace("  ", " ")
         fname = fdecl[:fdecl.find("(")].strip()
         fnpos = fname.rfind(" ")
-        if fnpos < 0:
-            fnpos = 0
+        fnpos = max(fnpos, 0)
         fname = fname[fnpos:].strip()
         rettype = fdecl[:fnpos].strip()
 
@@ -326,7 +323,7 @@ class CppHeaderParser(object):
 
         args0str = fdecl[apos+1:fdecl.rfind(")")].strip()
 
-        if args0str != "" and args0str != "void":
+        if args0str not in ["", "void"]:
             args0str = re.sub(r"\([^)]*\)", lambda m: m.group(0).replace(',', "@comma@"), args0str)
             args0 = args0str.split(",")
 

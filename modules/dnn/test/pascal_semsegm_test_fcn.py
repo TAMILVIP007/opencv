@@ -152,17 +152,20 @@ class SemSegmEvaluation:
         self.log = open(log_path, 'w')
 
     def process(self, frameworks, data_fetcher):
-        samples_handled = 0
+        conf_mats = [
+            np.zeros(
+                (data_fetcher.get_num_classes(), data_fetcher.get_num_classes())
+            )
+            for _ in range(len(frameworks))
+        ]
 
-        conf_mats = [np.zeros((data_fetcher.get_num_classes(), data_fetcher.get_num_classes())) for i in range(len(frameworks))]
         blobs_l1_diff = [0] * len(frameworks)
         blobs_l1_diff_count = [0] * len(frameworks)
         blobs_l_inf_diff = [sys.float_info.min] * len(frameworks)
         inference_time = [0.0] * len(frameworks)
 
-        for in_blob, gt in data_fetcher:
+        for samples_handled, (in_blob, gt) in enumerate(data_fetcher, start=1):
             frameworks_out = []
-            samples_handled += 1
             for i in range(len(frameworks)):
                 start = time.time()
                 out = frameworks[i].get_output(in_blob)

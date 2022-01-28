@@ -291,9 +291,9 @@ try:
                 if not has_frame:
                     break
 
-                if not out1 is None:
+                if out1 is not None:
                     out_counter += 1
-                if not out2 is None:
+                if out2 is not None:
                     desync_out_counter += 1
                 else:
                     none_counter += 1

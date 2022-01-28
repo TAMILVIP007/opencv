@@ -12,12 +12,11 @@ http://www.robinhewitt.com/research/track/camshift.html
 
 '''
 
+
 # Python 2/3 compatibility
 from __future__ import print_function
 import sys
-PY3 = sys.version_info[0] == 3
-
-if PY3:
+if PY3 := sys.version_info[0] == 3:
     xrange = range
 
 import numpy as np

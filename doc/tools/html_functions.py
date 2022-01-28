@@ -25,8 +25,7 @@ def load_html_file(file_dir):
     data = re.sub(r'([ ]+)(\<)', lambda match: ('!space!' * len(match.group(1))) + match.group(2), data)
     if os.name == 'nt' or sys.version_info[0] == 3:
         data = data.encode('utf-8', 'ignore')
-    soup = BeautifulSoup(data, 'html.parser')
-    return soup
+    return BeautifulSoup(data, 'html.parser')
 
 def update_html(file, soup):
     s = str(soup)
@@ -45,7 +44,7 @@ def insert_python_signatures(python_signatures, symbols_dict, filepath):
         if anchor in symbols_dict:
             s = symbols_dict[anchor]
             logging.info('Process: %r' % s)
-            if s.type == 'fn' or s.type == 'method':
+            if s.type in ['fn', 'method']:
                 process_fn(soup, e, python_signatures[s.cppname], s)
             elif s.type == 'const':
                 process_const(soup, e, python_signatures[s.cppname], s)

@@ -87,20 +87,18 @@ def get_matcher(args):
     try_cuda = args.try_cuda
     matcher_type = args.matcher
     if args.match_conf is None:
-        if args.features == 'orb':
-            match_conf = 0.3
-        else:
-            match_conf = 0.65
+        match_conf = 0.3 if args.features == 'orb' else 0.65
     else:
         match_conf = args.match_conf
     range_width = args.rangewidth
     if matcher_type == "affine":
-        matcher = cv.detail_AffineBestOf2NearestMatcher(False, try_cuda, match_conf)
+        return cv.detail_AffineBestOf2NearestMatcher(False, try_cuda, match_conf)
     elif range_width == -1:
-        matcher = cv.detail.BestOf2NearestMatcher_create(try_cuda, match_conf)
+        return cv.detail.BestOf2NearestMatcher_create(try_cuda, match_conf)
     else:
-        matcher = cv.detail.BestOf2NearestRangeMatcher_create(range_width, try_cuda, match_conf)
-    return matcher
+        return cv.detail.BestOf2NearestRangeMatcher_create(
+            range_width, try_cuda, match_conf
+        )
 
 
 def get_compensator(args):
@@ -109,17 +107,16 @@ def get_compensator(args):
     expos_comp_block_size = args.expos_comp_block_size
     # expos_comp_nr_filtering = args.expos_comp_nr_filtering
     if expos_comp_type == cv.detail.ExposureCompensator_CHANNELS:
-        compensator = cv.detail_ChannelsCompensator(expos_comp_nr_feeds)
-        # compensator.setNrGainsFilteringIterations(expos_comp_nr_filtering)
+        return cv.detail_ChannelsCompensator(expos_comp_nr_feeds)
+            # compensator.setNrGainsFilteringIterations(expos_comp_nr_filtering)
     elif expos_comp_type == cv.detail.ExposureCompensator_CHANNELS_BLOCKS:
-        compensator = cv.detail_BlocksChannelsCompensator(
+        return cv.detail_BlocksChannelsCompensator(
             expos_comp_block_size, expos_comp_block_size,
             expos_comp_nr_feeds
         )
-        # compensator.setNrGainsFilteringIterations(expos_comp_nr_filtering)
+            # compensator.setNrGainsFilteringIterations(expos_comp_nr_filtering)
     else:
-        compensator = cv.detail.ExposureCompensator_createDefault(expos_comp_type)
-    return compensator
+        return cv.detail.ExposureCompensator_createDefault(expos_comp_type)
 
 
 def main():

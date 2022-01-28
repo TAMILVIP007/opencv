@@ -245,10 +245,9 @@ def op(op_id, in_types, out_types):
                         raise Exception("{} invalid GOpaque type for argument {}.\nExpected: {}, Actual: {}"
                                 .format(cls.__name__, i, type2str[gopaque_types[t]], type2str[a.type()]))
 
-                else:
-                    if t != type(a):
-                        raise Exception('{} invalid input type for argument {}.\nExpected: {}, Actual: {}'
-                                .format(cls.__name__, i, t.__name__, type(a).__name__))
+                elif t != type(a):
+                    raise Exception('{} invalid input type for argument {}.\nExpected: {}, Actual: {}'
+                            .format(cls.__name__, i, t.__name__, type(a).__name__))
 
             op = cv.gapi.__op(op_id, cls.outMeta, *args)
 
